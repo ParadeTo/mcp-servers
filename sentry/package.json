@@ -1,0 +1,30 @@
+{
+  "name": "@mcp-server/sentry",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "main": "index.js",
+  "bin": {
+    "mcp-server-sentry": "./build/index.js"
+  },
+  "scripts": {
+    "dev": "nodemon --esm src/index.ts",
+    "compile": "tsc",
+    "build": "tsc && node -e \"require('fs').chmodSync('build/index.js', '755')\"",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "inspector": "npx @modelcontextprotocol/inspector build/index.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "0.6.0",
+    "axios": "^1.7.9",
+    "type": "link:@modelcontextprotocol/sdk/type"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.24",
+    "nodemon": "^3.1.9",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  }
+}
