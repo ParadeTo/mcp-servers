@@ -1,7 +1,11 @@
+import {EventSource} from 'eventsource'
+global.EventSource = EventSource
 import {Client} from '@modelcontextprotocol/sdk/client/index.js'
+import {SSEClientTransport} from '@modelcontextprotocol/sdk/client/sse.js'
 import {StdioClientTransport} from '@modelcontextprotocol/sdk/client/stdio.js'
+import {Transport} from '@modelcontextprotocol/sdk/shared/transport.js'
 import {Tool} from '@modelcontextprotocol/sdk/types.js'
-
+import {log} from 'console'
 export class MCPClient {
   private client: Client
   private tools: Tool[] = []
@@ -22,11 +26,17 @@ export class MCPClient {
     )
   }
 
-  async connect() {
-    const transport = new StdioClientTransport({
-      command: 'node',
-      args: ['/Users/youxingzhi/ayou/mcp-servers/sentry/build/index.js'],
-    })
+  async connect(type: 'stdio' | 'http') {
+    let transport: Transport
+    if (type === 'stdio') {
+      transport = new StdioClientTransport({
+        command: 'node',
+        args: ['/Users/youxingzhi/ayou/mcp-servers/sentry/build/index.js'],
+      })
+    } else {
+      transport = new SSEClientTransport(new URL('http://localhost:3000/sse'))
+    }
+
     await this.client.connect(transport)
     await this.loadTools()
   }
@@ -50,3 +60,10 @@ export class MCPClient {
     })
   }
 }
+
+const client = new MCPClient()
+
+client.connect('http').then(async () => {
+  const issue = await client.getSentryIssue('4')
+  console.log(issue)
+})
