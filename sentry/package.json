@@ -8,7 +8,8 @@
     "mcp-server-sentry": "./build/index.js"
   },
   "scripts": {
-    "dev": "nodemon --esm src/index.ts",
+    "dev:stdio": "nodemon --esm src/index.ts --stdio",
+    "dev:sse": "nodemon --esm src/index.ts --sse 3000",
     "compile": "tsc",
     "build": "tsc && node -e \"require('fs').chmodSync('build/index.js', '755')\"",
     "test": "echo \"Error: no test specified\" && exit 1",

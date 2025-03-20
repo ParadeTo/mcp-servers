@@ -10,6 +10,9 @@ export class MCPClient {
   private client: Client
   private tools: Tool[] = []
 
+  getTools() {
+    return this.tools
+  }
   constructor() {
     this.client = new Client(
       {
@@ -31,10 +34,19 @@ export class MCPClient {
     if (type === 'stdio') {
       transport = new StdioClientTransport({
         command: 'node',
-        args: ['/Users/youxingzhi/ayou/mcp-servers/sentry/build/index.js'],
+        args: [
+          '/Users/youxingzhi/ayou/mcp-servers/sentry/build/index.js',
+          '--stdio',
+          'https://dpsentry.shopee.io/api/0/',
+          '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',
+        ],
       })
     } else {
-      transport = new SSEClientTransport(new URL('http://localhost:3000/sse'))
+      transport = new SSEClientTransport(
+        new URL(
+          'http://localhost:3000/sse?sentry_base_url=https://dpsentry.shopee.io/api/0/&sentry_api_key=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'
+        )
+      )
     }
 
     await this.client.connect(transport)
@@ -61,9 +73,9 @@ export class MCPClient {
   }
 }
 
-const client = new MCPClient()
+// const client = new MCPClient()
 
-client.connect('http').then(async () => {
-  const issue = await client.getSentryIssue('4')
-  console.log(issue)
-})
+// client.connect('stdio').then(async () => {
+//   const issue = await client.getSentryIssue('4')
+//   console.log(issue)
+// })

@@ -8,7 +8,7 @@ import {
   ListToolsRequestSchema,
   McpError,
 } from '@modelcontextprotocol/sdk/types.js'
-import axios, {Axios} from 'axios'
+import axios, {AxiosInstance} from 'axios'
 import {createStacktrace, SentryIssueData} from './utils.js'
 import {SSEServerTransport} from '@modelcontextprotocol/sdk/server/sse.js'
 
@@ -20,7 +20,7 @@ const sentryApiKey =
 
 export class SentryServer {
   private server: Server
-  private axiosInstance: Axios
+  private axiosInstance: AxiosInstance | null = null
   private sessionMap: Map<string, SSEServerTransport> = new Map()
 
   constructor() {
@@ -28,15 +28,17 @@ export class SentryServer {
       {name: 'mcp-server-sentry', version: '1.0.0'},
       {capabilities: {tools: {}}}
     )
+    this
+    this.setupToolHandlers()
+  }
 
+  initAxios(baseURL: string, apiKey: string) {
     this.axiosInstance = axios.create({
-      baseURL: sentryBaseUrl,
+      baseURL: baseURL,
       headers: {
-        Authorization: `Bearer ${sentryApiKey}`,
+        Authorization: `Bearer ${apiKey}`,
       },
     })
-
-    this.setupToolHandlers()
   }
 
   private setupToolHandlers() {
@@ -96,6 +98,9 @@ export class SentryServer {
   }
 
   async handleSentryIssue(issueIdOrUrl: string) {
+    if (!this.axiosInstance) {
+      throw new McpError(ErrorCode.InternalError, 'No axios instance')
+    }
     try {
       const rsp = await this.axiosInstance.get(`/issues/${issueIdOrUrl}/`)
       const issue_data = rsp.data
@@ -120,8 +125,9 @@ export class SentryServer {
     }
   }
 
-  async runStdio() {
+  async runStdio(sentryBaseUrl: string, sentryApiKey: string) {
     const transport = new StdioServerTransport()
+    this.initAxios(sentryBaseUrl, sentryApiKey)
     await this.server.connect(transport)
     console.error('SentryServer running on stdio')
   }
@@ -135,7 +141,18 @@ export class SentryServer {
       }
       const url = new URL(req.url, `http://${req.headers.host}`)
       if (url.pathname === '/sse') {
+        console.log(req.url)
+        const sentryBaseUrl = url.searchParams.get('sentry_base_url')
+        const sentryApiKey = url.searchParams.get('sentry_api_key')
+
+        if (!sentryBaseUrl || !sentryApiKey) {
+          res.writeHead(400, {'Content-Type': 'text/plain'})
+          res.end('sentry_base_url and sentry_api_key are required')
+          return
+        }
+
         const transport = new SSEServerTransport('/messages', res)
+        this.initAxios(sentryBaseUrl, sentryApiKey)
         const sessionId = transport.sessionId
         this.sessionMap.set(sessionId, transport)
         await this.server.connect(transport)
